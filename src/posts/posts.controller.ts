@@ -18,7 +18,8 @@ export class PostsController {
   constructor(private readonly postsService: PostsService) {}
 
   @Post()
-  create(@Body() createPostDto: CreatePostDto, @Request() req: Request) {
+  create(@Body() createPostDto: CreatePostDto, @Request() req) {
+    console.log('req', req.user);
     return this.postsService.create(createPostDto, req);
   }
 
@@ -28,9 +29,10 @@ export class PostsController {
     return this.postsService.findAll();
   }
 
+  @Public()
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.postsService.findOne(+id);
+    return this.postsService.findOne(id);
   }
 
   @Patch(':id')

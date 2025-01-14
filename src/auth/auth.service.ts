@@ -11,7 +11,7 @@ export class AuthService {
 
   async signIn(username: string): Promise<any> {
     const user = await this.usersService.findOrCreate(username);
-    const payload = { sub: user.id, username: user.username };
+    const payload = { sub: user.id, id: user.id, username: user.username };
 
     return {
       access_token: await this.jwtService.signAsync(payload),

@@ -1,5 +1,11 @@
-import { Model } from 'mongoose';
-import { Inject, Injectable, Request, UseGuards } from '@nestjs/common';
+import { Model, Types } from 'mongoose';
+import {
+  Inject,
+  Injectable,
+  Request,
+  UseGuards,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { Post } from './entities/post.entity';
@@ -16,7 +22,6 @@ export class PostsService {
   async create(createPostDto: CreatePostDto, @Request() req) {
     const user = req.user;
 
-    console.log('user', user);
     try {
       const post = await this.postModel.create({
         title: createPostDto.title,
@@ -44,9 +49,105 @@ export class PostsService {
   findAll() {
     return `This action returns all posts`;
   }
+  async findOne(id: string) {
+    const post = await this.postModel.aggregate([
+      {
+        $match: {
+          _id: new Types.ObjectId(id),
+        },
+      },
+      {
+        $lookup: {
+          from: 'users',
+          let: { userId: '$user_id' },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $eq: ['$_id', { $toObjectId: '$$userId' }],
+                },
+              },
+            },
+          ],
+          as: 'author',
+        },
+      },
+      {
+        $unwind: '$author',
+      },
+      {
+        $lookup: {
+          from: 'comments',
+          let: { postId: '$_id' },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $eq: ['$post_id', { $toObjectId: '$$postId' }],
+                },
+              },
+            },
+            {
+              $lookup: {
+                from: 'users',
+                let: { userId: '$user_id' },
+                pipeline: [
+                  {
+                    $match: {
+                      $expr: {
+                        $eq: ['$_id', { $toObjectId: '$$userId' }],
+                      },
+                    },
+                  },
+                  {
+                    $project: {
+                      _id: 1,
+                      username: 1,
+                    },
+                  },
+                ],
+                as: 'user',
+              },
+            },
+            {
+              $unwind: '$user',
+            },
+          ],
+          as: 'comments',
+        },
+      },
+    ]);
 
-  findOne(id: number) {
-    return `This action returns a #${id} post`;
+    const formattedPost = post[0];
+    if (!formattedPost) {
+      throw new NotFoundException('Post not found');
+    }
+
+    return {
+      post: {
+        id: formattedPost._id,
+        title: formattedPost.title,
+        text_value: formattedPost.text_value,
+        created_at: formattedPost.created_at,
+        updated_at: formattedPost.updated_at,
+        user_id: formattedPost.user_id,
+      },
+      author: {
+        id: formattedPost.author._id,
+        username: formattedPost.author.username,
+      },
+      comments: formattedPost.comments.map((comment) => ({
+        id: comment._id,
+        text_value: comment.text_value,
+        created_at: comment.created_at,
+        updated_at: comment.updated_at,
+        user_id: comment.user_id,
+        user: {
+          id: comment.user._id,
+          username: comment.user.username,
+        },
+      })),
+    };
   }
 
   update(id: number, updatePostDto: UpdatePostDto) {
