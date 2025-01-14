@@ -1,15 +1,8 @@
 import { Model, Types } from 'mongoose';
-import {
-  Inject,
-  Injectable,
-  Request,
-  UseGuards,
-  NotFoundException,
-} from '@nestjs/common';
+import { Inject, Injectable, Request, NotFoundException } from '@nestjs/common';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { Post } from './entities/post.entity';
-import { AuthGuard } from 'src/auth/auth.guard';
 
 @Injectable()
 export class PostsService {
@@ -18,7 +11,6 @@ export class PostsService {
     private postModel: Model<Post>,
   ) {}
 
-  @UseGuards(AuthGuard)
   async create(createPostDto: CreatePostDto, @Request() req) {
     const user = req.user;
 
