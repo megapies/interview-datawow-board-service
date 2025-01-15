@@ -11,10 +11,15 @@ export class AuthService {
 
   async signIn(username: string): Promise<any> {
     const user = await this.usersService.findOrCreate(username);
+    console.log('User', user);
     const payload = { sub: user.id, id: user.id, username: user.username };
+    const accessToken = await this.jwtService.signAsync(payload);
 
     return {
-      access_token: await this.jwtService.signAsync(payload),
+      id: user.id,
+      access_token: accessToken,
+      username: user.username,
+      avatar: user.avatar,
     };
   }
 }
