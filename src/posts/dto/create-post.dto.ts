@@ -12,4 +12,8 @@ export class CreatePostDto {
   @MinLength(3)
   @MaxLength(1000)
   text_value: string;
+
+  @IsNotEmpty()
+  @IsString()
+  community: string;
 }

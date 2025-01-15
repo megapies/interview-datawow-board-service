@@ -18,7 +18,8 @@ export class PostsService {
       const post = await this.postModel.create({
         title: createPostDto.title,
         text_value: createPostDto.text_value,
-        user_id: user.id,
+        user_id: Types.ObjectId.createFromHexString(user.id),
+        community: createPostDto.community,
         created_at: new Date(),
         updated_at: new Date(),
       });
@@ -31,6 +32,7 @@ export class PostsService {
           created_at: post.created_at,
           updated_at: post.updated_at,
           user_id: post.user_id,
+          community: post.community,
         },
       };
     } catch (error) {
@@ -38,8 +40,60 @@ export class PostsService {
     }
   }
 
-  findAll() {
-    return `This action returns all posts`;
+  async findAll() {
+    const posts = await this.postModel.aggregate([
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'user_id',
+          foreignField: '_id',
+          as: 'user',
+        },
+      },
+      {
+        $unwind: '$user',
+      },
+      {
+        $lookup: {
+          from: 'comments',
+          let: { postId: '$_id' },
+          pipeline: [
+            {
+              $match: {
+                $expr: { $eq: ['$post_id', '$$postId'] },
+              },
+            },
+            {
+              $count: 'count',
+            },
+          ],
+          as: 'comments_count',
+        },
+      },
+      {
+        $addFields: {
+          comments_count: {
+            $ifNull: [{ $arrayElemAt: ['$comments_count.count', 0] }, 0],
+          },
+        },
+      },
+    ]);
+
+    return {
+      posts: posts.map((post) => ({
+        id: post._id,
+        title: post.title,
+        text_value: post.text_value,
+        created_at: post.created_at,
+        updated_at: post.updated_at,
+        author: {
+          username: post.user.username,
+          avatar: post.user.avatar,
+        },
+        community: post.community,
+        comments_count: post.comments_count,
+      })),
+    };
   }
   async findOne(id: string) {
     const post = await this.postModel.aggregate([
@@ -56,7 +110,7 @@ export class PostsService {
             {
               $match: {
                 $expr: {
-                  $eq: ['$_id', { $toObjectId: '$$userId' }],
+                  $eq: ['$_id', '$$userId'],
                 },
               },
             },
@@ -75,7 +129,7 @@ export class PostsService {
             {
               $match: {
                 $expr: {
-                  $eq: ['$post_id', { $toObjectId: '$$postId' }],
+                  $eq: ['$post_id', '$$postId'],
                 },
               },
             },
@@ -87,7 +141,7 @@ export class PostsService {
                   {
                     $match: {
                       $expr: {
-                        $eq: ['$_id', { $toObjectId: '$$userId' }],
+                        $eq: ['$_id', '$$userId'],
                       },
                     },
                   },
