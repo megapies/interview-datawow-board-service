@@ -7,11 +7,13 @@ import {
   Param,
   Delete,
   Request,
+  Query,
 } from '@nestjs/common';
 import { PostsService } from './posts.service';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { Public } from 'src/auth/decorators/public.decorator';
+import { FindAllPostDto } from './dto/findall-post.dto';
 
 @Controller('posts')
 export class PostsController {
@@ -19,14 +21,13 @@ export class PostsController {
 
   @Post()
   create(@Body() createPostDto: CreatePostDto, @Request() req) {
-    console.log('req', req.user);
     return this.postsService.create(createPostDto, req);
   }
 
   @Public()
   @Get()
-  findAll() {
-    return this.postsService.findAll();
+  findAll(@Query() query: FindAllPostDto) {
+    return this.postsService.findAll(query);
   }
 
   @Public()

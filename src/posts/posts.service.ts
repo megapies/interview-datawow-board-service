@@ -3,6 +3,7 @@ import { Inject, Injectable, Request, NotFoundException } from '@nestjs/common';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { Post } from './entities/post.entity';
+import { FindAllPostDto } from './dto/findall-post.dto';
 
 @Injectable()
 export class PostsService {
@@ -40,8 +41,32 @@ export class PostsService {
     }
   }
 
-  async findAll() {
+  async findAll(query: FindAllPostDto) {
+    const { community, search } = query;
+
+    console.log('query', query);
+    // Create match conditions based on query parameters
+    const matchConditions: any = {};
+
+    if (community) {
+      matchConditions.community = community;
+    }
+
+    if (search) {
+      matchConditions.$or = [{ title: { $regex: search, $options: 'i' } }];
+    }
+
+    console.log('matchConditions', matchConditions);
+
     const posts = await this.postModel.aggregate([
+      // Add $match stage if we have any conditions
+      ...(Object.keys(matchConditions).length > 0
+        ? [
+            {
+              $match: matchConditions,
+            },
+          ]
+        : []),
       {
         $lookup: {
           from: 'users',
@@ -145,12 +170,6 @@ export class PostsService {
                       },
                     },
                   },
-                  {
-                    $project: {
-                      _id: 1,
-                      username: 1,
-                    },
-                  },
                 ],
                 as: 'user',
               },
@@ -193,6 +212,7 @@ export class PostsService {
         user: {
           id: comment.user._id,
           username: comment.user.username,
+          avatar: comment.user.avatar,
         },
       })),
     };
