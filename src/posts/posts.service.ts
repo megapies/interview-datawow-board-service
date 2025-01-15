@@ -176,11 +176,13 @@ export class PostsService {
         text_value: formattedPost.text_value,
         created_at: formattedPost.created_at,
         updated_at: formattedPost.updated_at,
+        community: formattedPost.community,
         user_id: formattedPost.user_id,
-      },
-      author: {
-        id: formattedPost.author._id,
-        username: formattedPost.author.username,
+        author: {
+          id: formattedPost.author._id,
+          username: formattedPost.author.username,
+          avatar: formattedPost.author.avatar,
+        },
       },
       comments: formattedPost.comments.map((comment) => ({
         id: comment._id,
