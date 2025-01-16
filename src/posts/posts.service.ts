@@ -42,7 +42,7 @@ export class PostsService {
   }
 
   async findAll(query: FindAllPostDto) {
-    const { community, searchText } = query;
+    const { community, search } = query;
 
     // Create match conditions based on query parameters
     const matchConditions: any = {};
@@ -51,10 +51,10 @@ export class PostsService {
       matchConditions.community = community;
     }
 
-    if (searchText) {
+    if (search) {
       matchConditions.$or = [
-        { title: { $regex: searchText, $options: 'i' } },
-        { text_value: { $regex: searchText, $options: 'i' } },
+        { title: { $regex: search, $options: 'i' } },
+        { text_value: { $regex: search, $options: 'i' } },
       ];
     }
 
